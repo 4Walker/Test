@@ -1,0 +1,13 @@
+video:
+  width: 1440
+  height: 1920
+  fps: 50
+bottom:
+  median_window_frames: 5
+  displacement_fraction: 0.95
+  baseline_frames: 15
+qc:
+  visibility_warning_threshold: 0.5
+  max_frame_angle_jump_deg: 8.0
+  lr_disagreement_warning_deg: 5.0
+  min_valid_fraction: 0.8
