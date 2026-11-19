@@ -83,3 +83,23 @@ python scripts/run_ds01_batch.py --input data/raw/floor --condition FLOOR --outp
 Add `--plots` to generate angle plots for every L/R view. Outputs are `outputs/batch/floor/trial_features.csv` (one row per successfully processed trial) and `outputs/batch/floor/processing_log.csv` (one row per detected trial key, status `OK`, `REVIEW`, `MISSING_VIEW`, or `ERROR`). Review the log and file pairing before interpreting results; `REVIEW` means QC screening, not failure or FMS score. Missing-view trials are retained in the log but do not receive trial-level features.
 
 Important: the batch runner inherits DS01 v0.1 thresholds and its assumptions about starting standing posture and full one-squat clips. Avoid public Git commits containing participant CSVs or exported features.
+
+## Bottom-window QC diagnostics (Step 5C-6B, v0.2)
+
+After a local `git pull origin main`, run the existing batch command again:
+
+```bash
+python scripts/run_ds01_batch.py --input data/raw/floor --condition FLOOR --output outputs/batch
+```
+
+The batch output now has additional columns:
+- `L_bottom_center_frame`, `R_bottom_center_frame`: arithmetic centers of inclusive bottom windows; these may be half frames
+- `L_bottom_duration_s`, `R_bottom_duration_s`: window duration computed as **number of frames / fps**
+- `LR_bottom_window_iou`: overlap between inclusive L/R frame intervals, intersection / union
+- `LR_bottom_center_time_diff_s`: cross-view difference between window centers
+- `LR_bottom_low_iou_warning`: exploratory warning if IoU < 0.60
+- `qc_review_v01`, `qc_review_v02`: retain old QC state and add the new overlap warning
+
+For an alternate exploratory warning threshold, add `--iou-warning 0.70`. **Neither the 0.60 default nor any other IoU threshold is a validated clinical threshold.** The new version does not change DS01 angle formulas, the 95% bottom interval extraction rule or the original bottom-frame feature. The diagnostic file derived from the previous batch feature table does **not** require re-running MediaPipe, but the full batch command does require original local CSVs.
+
+Review short-duration, long-duration, and low-IoU cases on original L/R videos; a high IoU by itself does not establish pose tracking accuracy.
