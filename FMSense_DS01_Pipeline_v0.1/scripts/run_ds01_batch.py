@@ -13,6 +13,7 @@ import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from src.ds01 import extract, fuse
+from src.bottom_qc import add_bottom_diagnostics
 from src.visualization import plot_angles
 
 def discover_pairs(source):
@@ -32,6 +33,8 @@ def main():
     parser.add_argument("--condition",choices=["FLOOR","BOARD"],required=True)
     parser.add_argument("--output",default="outputs/batch")
     parser.add_argument("--config",default=str(Path(__file__).resolve().parents[1]/"config.yaml"))
+    parser.add_argument("--iou-warning",type=float,default=0.60,
+                        help="Exploratory minimum bottom-window IoU before QC review")
     parser.add_argument("--plots",action="store_true",help="Save one plot per view (extra processing time)")
     args=parser.parse_args()
 
@@ -60,6 +63,7 @@ def main():
             for side in ("L","R"):
                 frames[side],summaries[side]=extract(cameras[side],side,config)
             combined=fuse(summaries["L"],summaries["R"],config,trial_key)
+            combined=add_bottom_diagnostics(combined,config["video"]["fps"],args.iou_warning)
             combined["condition"]=args.condition
             combined["L_file"]=cameras["L"].name
             combined["R_file"]=cameras["R"].name
@@ -70,7 +74,8 @@ def main():
                 for side in ("L","R"):
                     plot_angles(frames[side],side,plot_folder/f"{side}_angles.png")
             flagged=bool(combined["L_qc_review_required"] or combined["R_qc_review_required"]
-                         or combined["LR_disagreement_warning"])
+                         or combined["LR_disagreement_warning"]
+                         or combined["LR_bottom_low_iou_warning"])
             log.append({"trial_id":trial_key,"condition":args.condition,
                         "status":"REVIEW" if flagged else "OK","detail":""})
         except (ValueError,KeyError,IndexError,TypeError,FileNotFoundError) as exc:
