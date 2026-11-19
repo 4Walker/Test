@@ -69,3 +69,17 @@ Future ML validation must split by participant, not camera or trial.
 ## Next steps
 
 Batch validation, movement segmentation, improved QC and DS02–DS06 features.
+
+## Batch validation (Step 5C-6A)
+
+The batch runner processes **one condition per invocation** and scans recursively for files ending in `_L.csv` and `_R.csv` with the same trial key before that last suffix. For example, `S01_P01_M01_L_T01_L.csv` matches `S01_P01_M01_L_T01_R.csv`. Check your filename pattern before use: if the camera label appears elsewhere, rename files or use an explicit manifest-based approach instead. Keep FLOOR and BOARD files in **separate directories** and never mix conditions during a run.
+
+Prepare `data/raw/floor/` with the 30 L/R CSVs for 15 trials. Then run:
+
+```bash
+python scripts/run_ds01_batch.py --input data/raw/floor --condition FLOOR --output outputs/batch
+```
+
+Add `--plots` to generate angle plots for every L/R view. Outputs are `outputs/batch/floor/trial_features.csv` (one row per successfully processed trial) and `outputs/batch/floor/processing_log.csv` (one row per detected trial key, status `OK`, `REVIEW`, `MISSING_VIEW`, or `ERROR`). Review the log and file pairing before interpreting results; `REVIEW` means QC screening, not failure or FMS score. Missing-view trials are retained in the log but do not receive trial-level features.
+
+Important: the batch runner inherits DS01 v0.1 thresholds and its assumptions about starting standing posture and full one-squat clips. Avoid public Git commits containing participant CSVs or exported features.
